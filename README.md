@@ -18,10 +18,12 @@ This is a web application designed to manage library transactions, including add
 ## Installation
 - Clone the repository to your local machine
 - Install dependencies using  
+
   ```
   npm install
   ```
 - Run the application using  
+
   ```
   npm start
   ```
