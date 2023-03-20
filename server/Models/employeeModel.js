@@ -1,13 +1,20 @@
 const mongoose = require('mongoose');
-const extendSchema = require('mongoose-extend-schema');
 const autoIncrement = require('mongoose-sequence')(mongoose);
-const staffSchema = require('./staffModel');
+const StaffSchema = require('./staffModel');
 
 // Create employee schema
-const employeeSchema = staffSchema;
+const EmployeeSchema = StaffSchema;
 
 // Add auto increment plugin
-employeeSchema.plugin(autoIncrement, { id: 'employeeId', inc_field: '_id' });
+EmployeeSchema.plugin(autoIncrement, { inc_field: '_id' });
+
+// Increment _id only if the user has been added successfully to database
+EmployeeSchema.pre('save', function (next) {
+    if (this.isNew) {
+        this._id++;
+    }
+    next();
+});
 
 // Mapping Schema to Model
-mongoose.model('employee', employeeSchema);
+mongoose.model('employees', EmployeeSchema);

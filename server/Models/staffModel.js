@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
-const extendSchema = require('mongoose-extend-schema');
-const userSchema = require('./userModel');
+const ExtendSchema = require('mongoose-extend-schema');
+const UserSchema = require('./userModel');
 
 // Create staff schema
-module.exports = extendSchema(userSchema, {
+module.exports = ExtendSchema(UserSchema, {
     hireDate: {
         type: Date,
         default: Date.now()
