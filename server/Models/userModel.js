@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+// Create user schema
 module.exports = new mongoose.Schema(
     {
         _id: Number,
