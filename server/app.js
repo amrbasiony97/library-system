@@ -1,7 +1,9 @@
 const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
+const fs = require('fs');
 const mongoose = require('mongoose');
+
 // const adminRouter = require("./Routers/adminRouter");
 // const basicAdminRouter = require("./Routers/basicAdminRouter");
 // const bookRouter = require("./Routers/bookRouter");
@@ -53,6 +55,11 @@ server.use((request, response) => {
 
 // Error handling Middleware
 server.use((error, request, response, next) => {
+    if (request.file) {
+        fs.unlink(request.file.path, error => {
+            return;
+        });
+    }
     let status = error.status || 500;
     response.status(status).json({ message: error + '' });
 });
