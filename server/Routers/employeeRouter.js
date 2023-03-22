@@ -43,5 +43,11 @@ router
 
 router
     .route('/employees/activate/:id')
-    // .patch();
+    .patch(
+        multerMW,
+        validateEmployee.validateActivatePatchArray,
+        validateMW,
+        controller.activateEmployee
+    );
+
 module.exports = router;

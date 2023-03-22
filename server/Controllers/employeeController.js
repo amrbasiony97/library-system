@@ -230,9 +230,82 @@ exports.updateEmployeeById = (request, response, next) => {
 		});
 };
 
-// exports.activateEmployee = (request, response, next) => {
+exports.activateEmployee = (request, response, next) => {
+	let imagePath = request.file ? request.file.path : null;
 
-// };
+	if (request.body.newPassword) {
+		request.body.newPassword = bcrypt.hashSync(
+			request.body.newPassword,
+			saltRounds
+		);
+	}
+	EmployeeSchema.findOne({ _id: request.params.id })
+		.then(employee => {
+			let error = new Error();
+			error.status = 403;
+			error.message = null;
+
+			if (!employee) {
+				error.status = 404;
+				error.message = 'Employee not found';
+			} else if (employee.password) {
+				error.status = 200;
+				error.message = 'Account is already activated';
+			} else if (request.body.oldPassword !== employee.tmpPassword) {
+				error.message = 'oldPassword is incorrect';
+			} else if (request.body.email) {
+				error.message = 'Employee cannot update his/her email';
+			} else if (request.body.salary) {
+				error.message = 'Employee cannot update his/her salary';
+			} else if (request.body.hireDate) {
+				error.message = 'Employee cannot update his/her hireDate';
+			}
+
+			if (error.message) {
+				throw error;
+			}
+
+			if (employee.image) {
+				if (imagePath) {
+					fs.unlink(employee.image, error => {});
+				} else {
+					imagePath = employee.image;
+				}
+			}
+			return EmployeeSchema.updateOne(
+				{
+					_id: request.params.id
+				},
+				{
+					$set: {
+						firstName: request.body.firstName,
+						lastName: request.body.lastName,
+						password: request.body.newPassword,
+						gender: request.body.gender,
+						birthDate: request.body.birthDate,
+						image: imagePath
+					},
+					$unset: {
+						tmpPassword: 1
+					}
+				}
+			);
+		})
+		.then(data => {
+			if (data.matchedCount === 0) {
+				let error = new Error('Employee not found');
+				error.status = 404;
+				throw error;
+			} else {
+				response
+					.status(200)
+					.json({ message: 'Employee updated successfully' });
+			}
+		})
+		.catch(error => {
+			next(error);
+		});
+};
 
 exports.deleteEmployee = (request, response, next) => {
 	EmployeeSchema.findOne({ _id: request.body.id })
