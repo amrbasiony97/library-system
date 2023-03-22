@@ -4,7 +4,7 @@ const cors = require('cors');
 const fs = require('fs');
 const mongoose = require('mongoose');
 
-// const adminRouter = require("./Routers/adminRouter");
+const adminRouter = require("./Routers/adminRouter");
 // const basicAdminRouter = require("./Routers/basicAdminRouter");
 // const bookRouter = require("./Routers/bookRouter");
 const employeeRouter = require('./Routers/employeeRouter');
@@ -42,7 +42,7 @@ server.use(express.urlencoded({ extended: false }));
 // Routes
 // server.use(loginRouter);
 // server.use(authenticateMW);
-// server.use(adminRouter);
+server.use(adminRouter);
 // server.use(basicAdminRouter);
 // server.use(bookRouter)
 // server.use(memberRouter);
