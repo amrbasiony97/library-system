@@ -94,7 +94,7 @@ exports.updateEmployeeByAdmin = (request, response, next) => {
 				error.status = 404;
 				error.message = 'Employee not found';
 			} else if (request.body.password && employee.tmpPassword) {
-                error.message = "Employee didn't activate his/her account yet";
+				error.message = "Employee didn't activate his/her account yet";
 			} else if (request.body.hireDate) {
 				error.message =
 					'hireDate cannot be changed once the user has been created';
@@ -159,9 +159,76 @@ exports.updateEmployeeByAdmin = (request, response, next) => {
 		});
 };
 
-// exports.updateEmployeeById = (request, response, next) => {
+exports.updateEmployeeById = (request, response, next) => {
+	let imagePath = request.file ? request.file.path : null;
 
-// };
+	if (request.body.password) {
+		request.body.password = bcrypt.hashSync(
+			request.body.password,
+			saltRounds
+		);
+	}
+	EmployeeSchema.findOne({ _id: request.params.id })
+		.then(employee => {
+			let error = new Error();
+			error.status = 403;
+			error.message = null;
+
+			if (!employee) {
+				error.status = 404;
+				error.message = 'Employee not found';
+			} else if (request.body.password && employee.tmpPassword) {
+				error.message = "Employee didn't activate his/her account yet";
+			} else if (request.body.email) {
+				error.message = 'Employee cannot update his/her email';
+			} else if (request.body.salary) {
+				error.message = 'Employee cannot update his/her salary';
+			} else if (request.body.hireDate) {
+				error.message = 'Employee cannot update his/her hireDate';
+			}
+
+			if (error.message) {
+				throw error;
+			}
+
+			if (employee.image) {
+				if (imagePath) {
+					fs.unlink(employee.image, error => {});
+				} else {
+					imagePath = employee.image;
+				}
+			}
+			return EmployeeSchema.updateOne(
+				{
+					_id: request.params.id
+				},
+				{
+					$set: {
+						firstName: request.body.firstName,
+						lastName: request.body.lastName,
+						password: request.body.password,
+						gender: request.body.gender,
+						birthDate: request.body.birthDate,
+						image: imagePath
+					}
+				}
+			);
+		})
+		.then(data => {
+			if (data.matchedCount === 0) {
+				let error = new Error('Employee not found');
+				error.status = 404;
+				throw error;
+			} else {
+				response
+					.status(200)
+					.json({ message: 'Employee updated successfully' });
+			}
+		})
+		.catch(error => {
+			next(error);
+		});
+};
 
 // exports.activateEmployee = (request, response, next) => {
 
@@ -171,9 +238,9 @@ exports.deleteEmployee = (request, response, next) => {
 	EmployeeSchema.findOne({ _id: request.body.id })
 		.then(employee => {
 			if (employee === null) {
-                let error = new Error('Employee not found');
+				let error = new Error('Employee not found');
 				error.status = 404;
-                throw error;
+				throw error;
 			}
 			request.body.email = employee.email;
 			request.body.image = employee.image;
@@ -184,9 +251,11 @@ exports.deleteEmployee = (request, response, next) => {
 		})
 		.then(transaction => {
 			if (transaction !== null) {
-                let error = new Error("Employee can't be deleted as he is still responsible for returning borrowed/read books");
+				let error = new Error(
+					"Employee can't be deleted as he is still responsible for returning borrowed/read books"
+				);
 				error.status = 409;
-                throw error;
+				throw error;
 			}
 			if (request.body.image !== null) {
 				fs.unlink(request.body.image, error => {});
@@ -197,7 +266,7 @@ exports.deleteEmployee = (request, response, next) => {
 			if (data.deletedCount == 0) {
 				let error = new Error('Employee not found');
 				error.status = 404;
-                throw error;
+				throw error;
 			} else {
 				return UserRoleSchema.deleteOne({ email: request.body.email });
 			}

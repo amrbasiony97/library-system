@@ -2,7 +2,7 @@ const express = require('express');
 
 const controller = require('../Controllers/employeeController');
 const validateMW = require('../Core/Validations/validateMW');
-const validateEmployee = require('../Core/Validations/validateEmployee');
+const validateEmployee = require('../Core/Validations/validateStaff');
 const multerMW = require('../Core/Multer/multerMW');
 const { checkEmail } = require('../Core/Utilities/utilities');
 
@@ -34,7 +34,12 @@ router
 router
     .route('/employees/:id')
     .get(controller.getEmployeeById)
-    // .patch();
+    .patch(
+        multerMW,
+        validateEmployee.validatePatchArray,
+        validateMW,
+        controller.updateEmployeeById
+    );
 
 router
     .route('/employees/activate/:id')

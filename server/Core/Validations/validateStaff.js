@@ -16,7 +16,7 @@ exports.validatePostArray = [
 ];
 
 exports.validateAdminPatchArray = [
-	body('id').isNumeric().withMessage('Employee id must be a number'),
+	body('id').isNumeric().withMessage('Id must be a number'),
 	body('firstName')
 		.optional()
 		.isAlpha()
@@ -41,6 +41,30 @@ exports.validateAdminPatchArray = [
 	body('salary').optional().isNumeric().withMessage('Salary must be a number')
 ];
 
+exports.validatePatchArray = [
+	param('id').isNumeric().withMessage('Id must be a number'),
+	body('firstName')
+		.optional()
+		.isAlpha()
+		.withMessage('First name must be alphabetic'),
+	body('lastName')
+		.optional()
+		.isAlpha()
+		.withMessage('Last name must be alphabetic'),
+	body('password')
+		.optional()
+		.isStrongPassword()
+		.withMessage('Password must be strong'),
+	body('gender')
+		.optional()
+		.isIn(['male', 'female'])
+		.withMessage('Gender must be either male or female'),
+	body('birthDate')
+		.optional()
+		.isDate()
+		.withMessage('Birth date must be a valid date'),
+];
+
 exports.validateId = [
-	body('id').isNumeric().withMessage('Employee id should be number')
+	body('id').isNumeric().withMessage('Id should be number')
 ];
