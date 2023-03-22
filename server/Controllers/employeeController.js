@@ -177,14 +177,17 @@ exports.updateEmployeeById = (request, response, next) => {
 			if (!employee) {
 				error.status = 404;
 				error.message = 'Employee not found';
-			} else if (request.body.password && employee.tmpPassword) {
+			}
+			if (request.body.password && employee.tmpPassword) {
 				error.message = "Employee didn't activate his/her account yet";
-			} else if (request.body.email) {
-				error.message = 'Employee cannot update his/her email';
-			} else if (request.body.salary) {
-				error.message = 'Employee cannot update his/her salary';
-			} else if (request.body.hireDate) {
-				error.message = 'Employee cannot update his/her hireDate';
+			}
+			if (
+				request.body.email ||
+				request.body.salary ||
+				request.body.hireDate
+			) {
+				error.message =
+					"Employee doesn't has the permissions to update email, salary or hireDate";
 			}
 
 			if (error.message) {
@@ -248,17 +251,21 @@ exports.activateEmployee = (request, response, next) => {
 			if (!employee) {
 				error.status = 404;
 				error.message = 'Employee not found';
-			} else if (employee.password) {
+			}
+			if (employee.password) {
 				error.status = 200;
 				error.message = 'Account is already activated';
-			} else if (request.body.oldPassword !== employee.tmpPassword) {
+			}
+			if (request.body.oldPassword !== employee.tmpPassword) {
 				error.message = 'oldPassword is incorrect';
-			} else if (request.body.email) {
-				error.message = 'Employee cannot update his/her email';
-			} else if (request.body.salary) {
-				error.message = 'Employee cannot update his/her salary';
-			} else if (request.body.hireDate) {
-				error.message = 'Employee cannot update his/her hireDate';
+			}
+			if (
+				request.body.email ||
+				request.body.salary ||
+				request.body.hireDate
+			) {
+				error.message =
+					"Employee doesn't has the permissions to update email, salary or hireDate";
 			}
 
 			if (error.message) {
