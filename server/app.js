@@ -56,9 +56,7 @@ server.use((request, response) => {
 // Error handling Middleware
 server.use((error, request, response, next) => {
     if (request.file) {
-        fs.unlink(request.file.path, error => {
-            return;
-        });
+        fs.unlink(request.file.path, error => {});
     }
     let status = error.status || 500;
     response.status(status).json({ message: error + '' });

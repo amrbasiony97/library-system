@@ -25,7 +25,11 @@ router
         validateMW,
         controller.updateEmployeeByAdmin
     )
-    // .delete();
+    .delete(
+        validateEmployee.validateId,
+        validateMW,
+        controller.deleteEmployee
+    );
 
 router
     .route('/employees/:id')

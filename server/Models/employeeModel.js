@@ -11,4 +11,4 @@ EmployeeSchema.plugin(autoIncrement, {
 });
 
 // Mapping Schema to Model
-const EmployeeModel = mongoose.model('employees', EmployeeSchema);
+mongoose.model('employees', EmployeeSchema);

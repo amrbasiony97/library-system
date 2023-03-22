@@ -1,5 +1,4 @@
 const { validationResult } = require('express-validator');
-// const fs = require('fs');
 
 module.exports = (request, response, next) => {
     let result = validationResult(request);
@@ -13,21 +12,3 @@ module.exports = (request, response, next) => {
         next(error);
     } else next();
 };
-
-// module.exports.validateImageMW = (request, response, next) => {
-//     let result = validationResult(request);
-//     if (result.errors.length != 0) {
-//         if (request.file !== undefined) {
-//             fs.unlink(request.file.path, error => {
-//                 return;
-//             });
-//         }
-//         let errorMsg = result.errors.reduce(
-//             (current, error) => current + error.msg + ', ',
-//             ''
-//         );
-//         let error = new Error(errorMsg);
-//         error.status = 422;
-//         next(error);
-//     } else next();
-// };
