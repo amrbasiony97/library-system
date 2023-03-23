@@ -26,4 +26,8 @@ router
         controller.updateAdminByBasicAdmin
     )
 
+router
+    .route('/admins/:id')
+    .get(controller.getAdminById)
+
 module.exports = router;

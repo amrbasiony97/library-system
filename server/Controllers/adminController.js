@@ -9,7 +9,7 @@ const { generatePassword } = require('../Core/Utilities/utilities');
 const saltRounds = 10;
 
 exports.getAllAdmins = (request, response, next) => {
-    // Get all employees if there is no firstname nor lastname were entered
+    // Get all admins if there is no firstname nor lastname were entered
 	request.query.firstname = request.query.firstname || '';
 	request.query.lastname = request.query.lastname || '';
 
@@ -24,6 +24,22 @@ exports.getAllAdmins = (request, response, next) => {
 			next(error);
 		});
 }
+
+exports.getAdminById = (request, response, next) => {
+	AdminSchema.findOne({ _id: request.params.id })
+		.then(admin => {
+			if (admin) {
+				response.status(200).json({ admin });
+			} else {
+				let error = new Error('Admin not found');
+				error.status = 404;
+				next(error);
+			}
+		})
+		.catch(error => {
+			next(error);
+		});
+};
 
 exports.addAdmin = (request, response, next) => {
 	const imagePath = request.file ? request.file.path : null;
