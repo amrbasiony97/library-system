@@ -2,8 +2,12 @@ const mongoose = require('mongoose');
 const UserRoleSchema = mongoose.model('users_roles');
 
 exports.toCapitalCase = str =>
-    str.split('/')[1].charAt(0).toUpperCase() +
-    str.split('/')[1].substring(1, str.length - 1);
+    str.charAt(0).toUpperCase() +
+    str.substring(1, str.length);
+
+exports.manipulateImagePath = str =>
+    str?.split('/')[1].charAt(0).toUpperCase() +
+    str?.split('/')[1].substring(1, str.length - 1);
 
 exports.checkEmail = (request, response, next) => {
     UserRoleSchema.findOne({ email: request.body.email })
