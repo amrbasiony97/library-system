@@ -1,6 +1,6 @@
 const multer = require('multer');
 const path = require('path');
-const { toCapitalCase } = require('../Utilities/utilities');
+const { manipulateImagePath } = require('../Utilities/utilities');
 
 module.exports = (request, response, next) => {
     multer({
@@ -13,7 +13,7 @@ module.exports = (request, response, next) => {
                         '..',
                         '..',
                         'Images',
-                        toCapitalCase(request.route.path)
+                        manipulateImagePath(request.route.path)
                     )
                 );
             }, // Set the destination to the matching entity folder inside Images folder
