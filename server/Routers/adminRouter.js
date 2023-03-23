@@ -18,5 +18,12 @@ router
         validateMW,
         controller.addAdmin
     )
+    .patch(
+        multerMW,
+        checkEmail,
+        validateAdmin.validateAdminPatchArray,
+        validateMW,
+        controller.updateAdminByBasicAdmin
+    )
 
 module.exports = router;

@@ -56,3 +56,87 @@ exports.addAdmin = (request, response, next) => {
 			next(error);
 		});
 };
+
+exports.updateAdminByBasicAdmin = (request, response, next) => {
+	let imagePath = request.file ? request.file.path : null;
+
+	if (request.body.password) {
+		request.body.password = bcrypt.hashSync(
+			request.body.password,
+			saltRounds
+		);
+	}
+	AdminSchema.findOne({ _id: request.body.id })
+		.then(admin => {
+			let error = new Error();
+			error.status = 403;
+			error.message = null;
+
+			if (!admin) {
+				error.status = 404;
+				error.message = 'Admin not found';
+			} else if (request.body.password && admin.tmpPassword) {
+				error.message = "Admin didn't activate his/her account yet";
+			} else if (request.body.hireDate) {
+				error.message =
+					'hireDate cannot be changed once the user has been created';
+			}
+
+			if (error.message) {
+				throw error;
+			}
+			// Save oldEmail to update email in users_roles collection if needed
+			request.body.oldEmail = request.body.email ? admin.email : null;
+
+			if (admin.image) {
+				if (imagePath) {
+					fs.unlink(admin.image, error => {});
+				} else {
+					imagePath = admin.image;
+				}
+			}
+			return AdminSchema.updateOne(
+				{
+					_id: request.body.id
+				},
+				{
+					$set: {
+						firstName: request.body.firstName,
+						lastName: request.body.lastName,
+						email: request.body.email,
+						password: request.body.password,
+						gender: request.body.gender,
+						birthDate: request.body.birthDate,
+						salary: request.body.salary,
+						image: imagePath
+					}
+				}
+			);
+		})
+		.then(data => {
+			if (data.matchedCount === 0) {
+				let error = new Error('Admin not found');
+				error.status = 404;
+				throw error;
+			} else {
+				return UserRoleSchema.updateOne(
+					{
+						email: request.body.oldEmail
+					},
+					{
+						$set: {
+							email: request.body.email
+						}
+					}
+				);
+			}
+		})
+		.then(data => {
+			response
+				.status(200)
+				.json({ message: 'Admin updated successfully' });
+		})
+		.catch(error => {
+			next(error);
+		});
+};
