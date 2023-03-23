@@ -176,10 +176,10 @@ exports.updateAdminById = (request, response, next) => {
 				error.status = 404;
 				error.message = 'Admin not found';
 			}
-			if (request.body.password && admin.tmpPassword) {
+			else if (request.body.password && admin.tmpPassword) {
 				error.message = "Admin didn't activate his/her account yet";
 			}
-			if (
+			else if (
 				request.body.email ||
 				request.body.salary ||
 				request.body.hireDate
@@ -211,6 +211,87 @@ exports.updateAdminById = (request, response, next) => {
 						gender: request.body.gender,
 						birthDate: request.body.birthDate,
 						image: imagePath
+					}
+				}
+			);
+		})
+		.then(data => {
+			if (data.matchedCount === 0) {
+				let error = new Error('Admin not found');
+				error.status = 404;
+				throw error;
+			} else {
+				response
+					.status(200)
+					.json({ message: 'Admin updated successfully' });
+			}
+		})
+		.catch(error => {
+			next(error);
+		});
+};
+
+exports.activateAdmin = (request, response, next) => {
+	let imagePath = request.file ? request.file.path : null;
+
+	if (request.body.newPassword) {
+		request.body.newPassword = bcrypt.hashSync(
+			request.body.newPassword,
+			saltRounds
+		);
+	}
+	AdminSchema.findOne({ _id: request.params.id })
+		.then(admin => {
+			let error = new Error();
+			error.status = 403;
+			error.message = null;
+
+			if (!admin) {
+				error.status = 404;
+				error.message = 'Admin not found';
+			}
+			else if (admin.password) {
+				error.status = 200;
+				error.message = 'Account is already activated';
+			}
+			else if (request.body.oldPassword !== admin.tmpPassword) {
+				error.message = 'oldPassword is incorrect';
+			}
+			else if (
+				request.body.email ||
+				request.body.salary ||
+				request.body.hireDate
+			) {
+				error.message =
+					"Admin doesn't has the permissions to update email, salary or hireDate";
+			}
+
+			if (error.message) {
+				throw error;
+			}
+
+			if (admin.image) {
+				if (imagePath) {
+					fs.unlink(admin.image, error => {});
+				} else {
+					imagePath = admin.image;
+				}
+			}
+			return AdminSchema.updateOne(
+				{
+					_id: request.params.id
+				},
+				{
+					$set: {
+						firstName: request.body.firstName,
+						lastName: request.body.lastName,
+						password: request.body.newPassword,
+						gender: request.body.gender,
+						birthDate: request.body.birthDate,
+						image: imagePath
+					},
+					$unset: {
+						tmpPassword: 1
 					}
 				}
 			);

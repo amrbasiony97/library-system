@@ -178,10 +178,10 @@ exports.updateEmployeeById = (request, response, next) => {
 				error.status = 404;
 				error.message = 'Employee not found';
 			}
-			if (request.body.password && employee.tmpPassword) {
+			else if (request.body.password && employee.tmpPassword) {
 				error.message = "Employee didn't activate his/her account yet";
 			}
-			if (
+			else if (
 				request.body.email ||
 				request.body.salary ||
 				request.body.hireDate
@@ -252,14 +252,14 @@ exports.activateEmployee = (request, response, next) => {
 				error.status = 404;
 				error.message = 'Employee not found';
 			}
-			if (employee.password) {
+			else if (employee.password) {
 				error.status = 200;
 				error.message = 'Account is already activated';
 			}
-			if (request.body.oldPassword !== employee.tmpPassword) {
+			else if (request.body.oldPassword !== employee.tmpPassword) {
 				error.message = 'oldPassword is incorrect';
 			}
-			if (
+			else if (
 				request.body.email ||
 				request.body.salary ||
 				request.body.hireDate

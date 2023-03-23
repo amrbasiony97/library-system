@@ -36,4 +36,13 @@ router
         controller.updateAdminById
     );
 
+router
+    .route('/admins/activate/:id')
+    .patch(
+        multerMW,
+        validateAdmin.validateActivatePatchArray,
+        validateMW,
+        controller.activateAdmin
+    );
+
 module.exports = router;
