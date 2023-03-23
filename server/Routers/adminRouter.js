@@ -25,6 +25,11 @@ router
         validateMW,
         controller.updateAdminByBasicAdmin
     )
+    .delete(
+        validateAdmin.validateId,
+        validateMW,
+        controller.deleteAdmin
+    );
 
 router
     .route('/admins/:id')

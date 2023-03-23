@@ -311,3 +311,36 @@ exports.activateAdmin = (request, response, next) => {
 			next(error);
 		});
 };
+
+exports.deleteAdmin = (request, response, next) => {
+	AdminSchema.findOne({ _id: request.body.id })
+		.then(admin => {
+			if (admin === null) {
+				let error = new Error('Admin not found');
+				error.status = 404;
+				throw error;
+			}
+			request.body.email = admin.email;
+			if (admin.image) {
+				fs.unlink(admin.image, error => {});
+			}
+			return AdminSchema.deleteOne({ _id: request.body.id });
+		})
+		.then(data => {
+			if (data.deletedCount == 0) {
+				let error = new Error('Admin not found');
+				error.status = 404;
+				throw error;
+			} else {
+				return UserRoleSchema.deleteOne({ email: request.body.email });
+			}
+		})
+		.then(data => {
+			response
+				.status(200)
+				.json({ data: 'Admin deleted successfully' });
+		})
+		.catch(error => {
+			next(error);
+		});
+};

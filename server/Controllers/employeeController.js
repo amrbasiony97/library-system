@@ -337,7 +337,7 @@ exports.deleteEmployee = (request, response, next) => {
 				error.status = 409;
 				throw error;
 			}
-			if (request.body.image !== null) {
+			if (request.body.image) {
 				fs.unlink(request.body.image, error => {});
 			}
 			return EmployeeSchema.deleteOne({ _id: request.body.id });
