@@ -29,5 +29,11 @@ router
 router
     .route('/admins/:id')
     .get(controller.getAdminById)
+    .patch(
+        multerMW,
+        validateAdmin.validatePatchArray,
+        validateMW,
+        controller.updateAdminById
+    );
 
 module.exports = router;

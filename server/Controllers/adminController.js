@@ -156,3 +156,77 @@ exports.updateAdminByBasicAdmin = (request, response, next) => {
 			next(error);
 		});
 };
+
+exports.updateAdminById = (request, response, next) => {
+	let imagePath = request.file ? request.file.path : null;
+
+	if (request.body.password) {
+		request.body.password = bcrypt.hashSync(
+			request.body.password,
+			saltRounds
+		);
+	}
+	AdminSchema.findOne({ _id: request.params.id })
+		.then(admin => {
+			let error = new Error();
+			error.status = 403;
+			error.message = null;
+
+			if (!admin) {
+				error.status = 404;
+				error.message = 'Admin not found';
+			}
+			if (request.body.password && admin.tmpPassword) {
+				error.message = "Admin didn't activate his/her account yet";
+			}
+			if (
+				request.body.email ||
+				request.body.salary ||
+				request.body.hireDate
+			) {
+				error.message =
+					"Admin doesn't has the permissions to update email, salary or hireDate";
+			}
+
+			if (error.message) {
+				throw error;
+			}
+
+			if (admin.image) {
+				if (imagePath) {
+					fs.unlink(admin.image, error => {});
+				} else {
+					imagePath = admin.image;
+				}
+			}
+			return AdminSchema.updateOne(
+				{
+					_id: request.params.id
+				},
+				{
+					$set: {
+						firstName: request.body.firstName,
+						lastName: request.body.lastName,
+						password: request.body.password,
+						gender: request.body.gender,
+						birthDate: request.body.birthDate,
+						image: imagePath
+					}
+				}
+			);
+		})
+		.then(data => {
+			if (data.matchedCount === 0) {
+				let error = new Error('Admin not found');
+				error.status = 404;
+				throw error;
+			} else {
+				response
+					.status(200)
+					.json({ message: 'Admin updated successfully' });
+			}
+		})
+		.catch(error => {
+			next(error);
+		});
+};
