@@ -6,25 +6,17 @@ require('../../Models/userRoleModel');
 require('../../Models/transactionModel');
 const UserRoleSchema = mongoose.model('users_roles');
 const TransactionSchema = mongoose.model('transactions');
-const {
-	generatePassword,
-	toCapitalCase
-} = require('../../Core/Utilities/utilities');
+const { toCapitalCase } = require('../../Core/Utilities/utilities');
 const saltRounds = 10;
 
-exports.getAllUsers = (schema, key) => {
+exports.getAllDocuments = (schema, key, filterFunction) => {
 	return (request, response, next) => {
-		// Get all users if there is no firstname nor lastname were entered
-		request.query.firstname = request.query.firstname || '';
-		request.query.lastname = request.query.lastname || '';
+		const filter = filterFunction(request);
 
 		schema
-			.find({
-				firstName: { $regex: request.query.firstname, $options: 'i' },
-				lastName: { $regex: request.query.lastname, $options: 'i' }
-			})
-			.then(user => {
-				response.status(200).json({ [key]: user });
+			.find(filter)
+			.then(data => {
+				response.status(200).json({ [key]: data });
 			})
 			.catch(error => {
 				next(error);
@@ -32,13 +24,13 @@ exports.getAllUsers = (schema, key) => {
 	};
 };
 
-exports.getUserByID = (schema, key) => {
+exports.getDocumentById = (schema, key) => {
 	return (request, response, next) => {
 		schema
 			.findOne({ _id: request.params.id })
-			.then(user => {
-				if (user) {
-					response.status(200).json({ [key]: user });
+			.then(data => {
+				if (data) {
+					response.status(200).json({ [key]: data });
 				} else {
 					let error = new Error(`${toCapitalCase(key)} not found`);
 					error.status = 404;
@@ -51,33 +43,31 @@ exports.getUserByID = (schema, key) => {
 	};
 };
 
-exports.addUser = (schema, key) => {
+exports.addDocument = (schema, key, mapFunction) => {
 	return (request, response, next) => {
-		const imagePath = request.file ? request.file.path : null;
+		const schemaObject = mapFunction(request);
+		schemaObject.image = request.file ? request.file.path : null;
 
-		new schema({
-			firstName: request.body.firstName,
-			lastName: request.body.lastName,
-			email: request.body.email,
-			tmpPassword: generatePassword(16),
-			gender: request.body.gender,
-			birthDate: request.body.birthDate,
-			salary: request.body.salary,
-			image: imagePath
-		})
+		new schema({ ...schemaObject })
 			.save()
-			.then(user => {
-				request.results = user;
-				return new UserRoleSchema({
-					email: request.body.email,
-					role: key
-				}).save();
+			.then(data => {
+				if (schemaObject.email) {
+					request.results = data;
+					return new UserRoleSchema({
+						email: schemaObject.email,
+						role: key
+					}).save();
+				} else {
+					response.status(201).json({ [key]: data });
+				}
 			})
 			.then(userRoleData => {
-				response.status(201).json({
-					[key]: request.results,
-					userRoleData
-				});
+				if (schemaObject.email) {
+					response.status(201).json({
+						[key]: request.results,
+						userRoleData
+					});
+				}
 			})
 			.catch(error => {
 				next(error);
@@ -85,28 +75,29 @@ exports.addUser = (schema, key) => {
 	};
 };
 
-exports.updateUser = (schema, key) => {
+exports.updateDocument = (schema, key, mapFunction) => {
 	return (request, response, next) => {
-		let imagePath = request.file ? request.file.path : null;
+		const schemaObject = mapFunction(request);
+		schemaObject.image = request.file ? request.file.path : null;
 
-		if (request.body.password) {
-			request.body.password = bcrypt.hashSync(
-				request.body.password,
+		if (schemaObject.password) {
+			schemaObject.password = bcrypt.hashSync(
+				schemaObject.password,
 				saltRounds
 			);
 		}
 		schema
 			.findOne({ _id: request.body.id })
-			.then(user => {
+			.then(data => {
 				let error = new Error();
 				error.status = 403;
 				error.message = null;
 
-				if (!user) {
+				if (!data) {
 					error.status = 404;
 					error.message = `${toCapitalCase(key)} not found`;
 					throw error;
-				} else if (request.body.password && user.tmpPassword) {
+				} else if (schemaObject.password && data.tmpPassword) {
 					error.message = `${toCapitalCase(
 						key
 					)} didn't activate his/her account yet`;
@@ -119,13 +110,13 @@ exports.updateUser = (schema, key) => {
 					throw error;
 				}
 				// Save oldEmail to update email in users_roles collection if needed
-				request.body.oldEmail = request.body.email ? user.email : null;
+				request.body.oldEmail = schemaObject.email ? data.email : null;
 
-				if (user.image) {
-					if (imagePath) {
-						fs.unlink(user.image, error => {});
+				if (data.image) {
+					if (schemaObject.image) {
+						fs.unlink(data.image, error => {});
 					} else {
-						imagePath = user.image;
+						schemaObject.image = data.image;
 					}
 				}
 				return schema.updateOne(
@@ -133,16 +124,7 @@ exports.updateUser = (schema, key) => {
 						_id: request.body.id
 					},
 					{
-						$set: {
-							firstName: request.body.firstName,
-							lastName: request.body.lastName,
-							email: request.body.email,
-							password: request.body.password,
-							gender: request.body.gender,
-							birthDate: request.body.birthDate,
-							salary: request.body.salary,
-							image: imagePath
-						}
+						$set: { ...schemaObject }
 					}
 				);
 			})
@@ -151,14 +133,14 @@ exports.updateUser = (schema, key) => {
 					let error = new Error(`${toCapitalCase(key)} not found`);
 					error.status = 404;
 					throw error;
-				} else {
+				} else if (schemaObject.email) {
 					return UserRoleSchema.updateOne(
 						{
 							email: request.body.oldEmail
 						},
 						{
 							$set: {
-								email: request.body.email
+								email: schemaObject.email
 							}
 						}
 					);
@@ -175,28 +157,29 @@ exports.updateUser = (schema, key) => {
 	};
 };
 
-exports.updateUserById = (schema, key) => {
+exports.updateDocumentById = (schema, key, mapFunction) => {
 	return (request, response, next) => {
-		let imagePath = request.file ? request.file.path : null;
+		const schemaObject = mapFunction(request);
+		schemaObject.image = request.file ? request.file.path : null;
 
-		if (request.body.password) {
-			request.body.password = bcrypt.hashSync(
-				request.body.password,
+		if (schemaObject.password) {
+			schemaObject.password = bcrypt.hashSync(
+				schemaObject.password,
 				saltRounds
 			);
 		}
 		schema
 			.findOne({ _id: request.params.id })
-			.then(user => {
+			.then(data => {
 				let error = new Error();
 				error.status = 403;
 				error.message = null;
 
-				if (!user) {
+				if (!data) {
 					error.status = 404;
 					error.message = `${toCapitalCase(key)} not found`;
 					throw error;
-				} else if (request.body.password && user.tmpPassword) {
+				} else if (schemaObject.password && data.tmpPassword) {
 					error.message = `${toCapitalCase(
 						key
 					)} didn't activate his/her account yet`;
@@ -214,11 +197,11 @@ exports.updateUserById = (schema, key) => {
 					throw error;
 				}
 
-				if (user.image) {
-					if (imagePath) {
-						fs.unlink(user.image, error => {});
+				if (data.image) {
+					if (schemaObject.image) {
+						fs.unlink(data.image, error => {});
 					} else {
-						imagePath = user.image;
+						schemaObject.image = data.image;
 					}
 				}
 				return schema.updateOne(
@@ -226,14 +209,7 @@ exports.updateUserById = (schema, key) => {
 						_id: request.params.id
 					},
 					{
-						$set: {
-							firstName: request.body.firstName,
-							lastName: request.body.lastName,
-							password: request.body.password,
-							gender: request.body.gender,
-							birthDate: request.body.birthDate,
-							image: imagePath
-						}
+						$set: { ...schemaObject }
 					}
 				);
 			})
@@ -254,13 +230,14 @@ exports.updateUserById = (schema, key) => {
 	};
 };
 
-exports.activateUser = (schema, key) => {
+exports.activateUser = (schema, key, mapFunction) => {
 	return (request, response, next) => {
-		let imagePath = request.file ? request.file.path : null;
+		const schemaObject = mapFunction(request);
+		schemaObject.image = request.file ? request.file.path : null;
 
-		if (request.body.newPassword) {
-			request.body.newPassword = bcrypt.hashSync(
-				request.body.newPassword,
+		if (schemaObject.password) {
+			schemaObject.password = bcrypt.hashSync(
+				schemaObject.password,
 				saltRounds
 			);
 		}
@@ -294,10 +271,10 @@ exports.activateUser = (schema, key) => {
 				}
 
 				if (user.image) {
-					if (imagePath) {
+					if (schemaObject.image) {
 						fs.unlink(user.image, error => {});
 					} else {
-						imagePath = user.image;
+						schemaObject.image = user.image;
 					}
 				}
 				return schema.updateOne(
@@ -305,14 +282,7 @@ exports.activateUser = (schema, key) => {
 						_id: request.params.id
 					},
 					{
-						$set: {
-							firstName: request.body.firstName,
-							lastName: request.body.lastName,
-							password: request.body.newPassword,
-							gender: request.body.gender,
-							birthDate: request.body.birthDate,
-							image: imagePath
-						},
+						$set: { ...schemaObject },
 						$unset: {
 							tmpPassword: 1
 						}
@@ -336,55 +306,18 @@ exports.activateUser = (schema, key) => {
 	};
 };
 
-exports.deleteAdmin = schema => {
-	return (request, response, next) => {
-		schema.findOne({ _id: request.body.id })
-			.then(admin => {
-				if (!admin) {
-					let error = new Error('Admin not found');
-					error.status = 404;
-					throw error;
-				}
-				request.body.email = admin.email;
-				if (admin.image) {
-					fs.unlink(admin.image, error => {});
-				}
-				return schema.deleteOne({ _id: request.body.id });
-			})
-			.then(data => {
-				if (data.deletedCount == 0) {
-					let error = new Error('Admin not found');
-					error.status = 404;
-					throw error;
-				} else {
-					return UserRoleSchema.deleteOne({
-						email: request.body.email
-					});
-				}
-			})
-			.then(data => {
-				response
-					.status(200)
-					.json({ message: 'Admin deleted successfully' });
-			})
-			.catch(error => {
-				next(error);
-			});
-	};
-};
-
-exports.deleteUser = (schema, key, msg) => {
+exports.deleteDocument = (schema, key, msg) => {
 	return (request, response, next) => {
 		schema
 			.findOne({ _id: request.body.id })
-			.then(user => {
-				if (!user) {
+			.then(data => {
+				if (!data) {
 					let error = new Error(`${toCapitalCase(key)} not found`);
 					error.status = 404;
 					throw error;
 				}
-				request.body.email = user.email;
-				request.body.image = user.image;
+				request.body.email = data.email;
+				request.body.image = data.image;
 				let keyId = `${key}Id`;
 
 				return TransactionSchema.findOne({
@@ -415,16 +348,12 @@ exports.deleteUser = (schema, key, msg) => {
 				}
 			})
 			.then(data => {
-				response
-					.status(200)
-					.json({
-						message: `${toCapitalCase(key)} deleted successfully`
-					});
+				response.status(200).json({
+					message: `${toCapitalCase(key)} deleted successfully`
+				});
 			})
 			.catch(error => {
 				next(error);
 			});
 	};
 };
-
-exports.deleteBook = this.deleteUser;

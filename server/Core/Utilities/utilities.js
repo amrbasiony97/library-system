@@ -1,4 +1,6 @@
 const mongoose = require('mongoose');
+
+require('../../Models/userRoleModel');
 const UserRoleSchema = mongoose.model('users_roles');
 
 exports.toCapitalCase = str =>

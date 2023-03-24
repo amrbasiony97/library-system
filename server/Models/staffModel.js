@@ -1,4 +1,3 @@
-const mongoose = require('mongoose');
 const ExtendSchema = require('mongoose-extend-schema');
 const UserSchema = require('./userModel');
 
