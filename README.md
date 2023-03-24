@@ -1,4 +1,4 @@
-# Library Management System
+# [Under dev] Library System
 This is a web application designed to manage library transactions, including adding new members, new books, searching books, members, and facilities to borrow and read books. The system has 4 types of users: Basic Admin, Admin, Employee, and Member.
 
 ## Table of Contents
