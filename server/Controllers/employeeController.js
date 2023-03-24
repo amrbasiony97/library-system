@@ -19,6 +19,5 @@ exports.activateEmployee = crudMW.activateUser(EmployeeSchema, 'employee');
 exports.deleteEmployee = crudMW.deleteUser(
 	EmployeeSchema,
 	'employee',
-	'employeeId',
 	"The employee cannot be deleted because he/she is still responsible for returning borrowed or read books"
 );

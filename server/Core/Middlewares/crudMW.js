@@ -336,9 +336,47 @@ exports.activateUser = (schema, key) => {
 	};
 };
 
-exports.deleteUser = (schema, key, keyId, msg) => {
+exports.deleteAdmin = schema => {
 	return (request, response, next) => {
 		schema.findOne({ _id: request.body.id })
+			.then(admin => {
+				if (!admin) {
+					let error = new Error('Admin not found');
+					error.status = 404;
+					throw error;
+				}
+				request.body.email = admin.email;
+				if (admin.image) {
+					fs.unlink(admin.image, error => {});
+				}
+				return schema.deleteOne({ _id: request.body.id });
+			})
+			.then(data => {
+				if (data.deletedCount == 0) {
+					let error = new Error('Admin not found');
+					error.status = 404;
+					throw error;
+				} else {
+					return UserRoleSchema.deleteOne({
+						email: request.body.email
+					});
+				}
+			})
+			.then(data => {
+				response
+					.status(200)
+					.json({ message: 'Admin deleted successfully' });
+			})
+			.catch(error => {
+				next(error);
+			});
+	};
+};
+
+exports.deleteUser = (schema, key, msg) => {
+	return (request, response, next) => {
+		schema
+			.findOne({ _id: request.body.id })
 			.then(user => {
 				if (!user) {
 					let error = new Error(`${toCapitalCase(key)} not found`);
@@ -347,6 +385,8 @@ exports.deleteUser = (schema, key, keyId, msg) => {
 				}
 				request.body.email = user.email;
 				request.body.image = user.image;
+				let keyId = `${key}Id`;
+
 				return TransactionSchema.findOne({
 					[keyId]: request.body.id,
 					isReturnd: false
@@ -377,10 +417,14 @@ exports.deleteUser = (schema, key, keyId, msg) => {
 			.then(data => {
 				response
 					.status(200)
-					.json({ data: `${toCapitalCase(key)} deleted successfully` });
+					.json({
+						message: `${toCapitalCase(key)} deleted successfully`
+					});
 			})
 			.catch(error => {
 				next(error);
 			});
 	};
 };
+
+exports.deleteBook = this.deleteUser;
