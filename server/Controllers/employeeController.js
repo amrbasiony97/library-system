@@ -3,14 +3,14 @@ const mongoose = require('mongoose');
 require('../Models/employeeModel');
 const EmployeeSchema = mongoose.model('employees');
 const crudMW = require('../Core/Middlewares/crudMW');
+const employeeAgg = require('../Core/Aggregation/staffAgg');
 
 exports.getAllEmployees = crudMW.getAllDocuments(
 	EmployeeSchema,
 	'employees',
-	request => ({
-		firstName: { $regex: request.query.firstname || '', $options: 'i' },
-		lastName: { $regex: request.query.lastname || '', $options: 'i' }
-	})
+	employeeAgg.allStaffProjection,
+	employeeAgg.filter,
+	employeeAgg.sort
 );
 
 exports.getEmployeeById = crudMW.getDocumentById(EmployeeSchema, 'employee');

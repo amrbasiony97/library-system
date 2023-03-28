@@ -9,7 +9,7 @@ const adminRouter = require("./Routers/adminRouter");
 // const bookRouter = require("./Routers/bookRouter");
 const employeeRouter = require('./Routers/employeeRouter');
 // const loginRouter = require("./Routers/loginRouter");
-// const memberRouter = require("./Routers/memberRouter");
+const memberRouter = require("./Routers/memberRouter");
 // const authenticateMW = require("./Core/Auth/authenticateMW");
 const server = express();
 const port = process.env.PORT || 8080;
@@ -45,7 +45,7 @@ server.use(express.urlencoded({ extended: false }));
 server.use(adminRouter);
 // server.use(basicAdminRouter);
 // server.use(bookRouter)
-// server.use(memberRouter);
+server.use(memberRouter);
 server.use(employeeRouter);
 
 // Not Found Middleware

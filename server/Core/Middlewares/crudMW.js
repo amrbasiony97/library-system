@@ -9,19 +9,59 @@ const TransactionSchema = mongoose.model('transactions');
 const { toCapitalCase } = require('../../Core/Utilities/utilities');
 const saltRounds = 10;
 
-exports.getAllDocuments = (schema, key, filterFunction) => {
+exports.getAllDocuments = (
+	schema,
+	key,
+	projectObj,
+	filterFunction,
+	sortFunction
+) => {
 	return (request, response, next) => {
-		const filter = filterFunction(request);
+		const filterObj = filterFunction(request);
+		const sortObj = sortFunction(request);
 
 		schema
-			.find(filter)
+			.aggregate([
+				{ $project: projectObj },
+				{ $match: filterObj },
+				{ $sort: sortObj }
+			])
+			.exec()
 			.then(data => {
-				response.status(200).json({ [key]: data });
+				const results = paginatedResults(data, request, key);
+				response.status(200).json({ results });
 			})
 			.catch(error => {
 				next(error);
 			});
 	};
+};
+
+const paginatedResults = (data, request, key) => {
+	const page = parseInt(request.query.page) || 1;
+	const limit = parseInt(request.query.limit) || 999999;
+
+	const startIndex = (page - 1) * limit;
+	const endIndex = page * limit;
+
+	const results = {};
+
+	if (endIndex < data.length) {
+		results.next = {
+			page: page + 1,
+			limit: limit
+		};
+	}
+
+	if (startIndex > 0) {
+		results.previous = {
+			page: page - 1,
+			limit: limit
+		};
+	}
+
+	results[key] = data.slice(startIndex, endIndex);
+	return results;
 };
 
 exports.getDocumentById = (schema, key) => {

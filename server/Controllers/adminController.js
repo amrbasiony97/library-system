@@ -3,14 +3,14 @@ const mongoose = require('mongoose');
 require('../Models/adminModel');
 const AdminSchema = mongoose.model('admins');
 const crudMW = require('../Core/Middlewares/crudMW');
+const adminAgg = require('../Core/Aggregation/staffAgg');
 
 exports.getAllAdmins = crudMW.getAllDocuments(
 	AdminSchema,
 	'admins',
-	request => ({
-		firstName: { $regex: request.query.firstname || '', $options: 'i' },
-		lastName: { $regex: request.query.lastname || '', $options: 'i' }
-	})
+	adminAgg.allStaffProjection,
+    adminAgg.filter,
+    adminAgg.sort
 );
 
 exports.getAdminById = crudMW.getDocumentById(AdminSchema, 'admin');
