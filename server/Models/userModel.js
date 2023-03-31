@@ -28,7 +28,10 @@ module.exports = new mongoose.Schema(
 			enum: ['male', 'female']
 		},
 		birthDate: Date,
-		image: String
+		image: {
+			type: String,
+			default: DEFAULT_USER_IMAGE
+		}
 	},
 	{ _id: false }
 );

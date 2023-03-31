@@ -13,7 +13,11 @@ exports.getAllEmployees = crudMW.getAllDocuments(
 	employeeAgg.sort
 );
 
-exports.getEmployeeById = crudMW.getDocumentById(EmployeeSchema, 'employee');
+exports.getEmployeeById = crudMW.getDocumentById(
+	EmployeeSchema,
+	'employee',
+	employeeAgg.oneStaffProjection
+);
 
 exports.addEmployee = crudMW.addDocument(
 	EmployeeSchema,

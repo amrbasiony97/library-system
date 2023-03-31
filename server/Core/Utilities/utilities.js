@@ -1,8 +1,27 @@
 const mongoose = require('mongoose');
+const path = require('path');
 
 require('../../Models/userRoleModel');
 const UserRoleSchema = mongoose.model('users_roles');
 
+exports.defineGlobalVariables = () => {
+	global.DEFAULT_USER_IMAGE = path.join(
+		__dirname,
+		'..',
+		'..',
+		'Images',
+		'Default',
+		'user.png'
+	);
+	global.DEFAULT_BOOK_IMAGE = path.join(
+		__dirname,
+		'..',
+		'..',
+		'Images',
+		'Default',
+		'book.png'
+	);
+};
 exports.toCapitalCase = str =>
 	str.charAt(0).toUpperCase() + str.substring(1, str.length);
 
@@ -10,18 +29,17 @@ exports.manipulateImagePath = str =>
 	str?.split('/')[1].charAt(0).toUpperCase() +
 	str?.split('/')[1].substring(1, str.length - 1);
 
-exports.checkEmail = (request, response, next) => {
-	UserRoleSchema.findOne({ email: request.body.email })
-		.then(user => {
-			if (user) {
-				let error = new Error('Email already exists');
-				error.status = 409;
-				next(error);
-			} else next();
-		})
-		.catch(error => {
+exports.checkEmail = async (request, response, next) => {
+	try {
+		let user = await UserRoleSchema.findOne({ email: request.body.email });
+		if (user) {
+			let error = new Error('Email already exists');
+			error.status = 409;
 			next(error);
-		});
+		} else next();
+	} catch (error) {
+		next(error);
+	}
 };
 
 exports.generatePassword = length => {
@@ -60,4 +78,27 @@ exports.generatePassword = length => {
 		}
 	}
 	return password;
+};
+
+exports.calculateAge = {
+	$subtract: [
+		{ $subtract: [{ $year: '$$NOW' }, { $year: '$birthDate' }] },
+		{
+			$cond: [
+				{
+					$gte: [
+						0,
+						{
+							$subtract: [
+								{ $dayOfYear: '$$NOW' },
+								{ $dayOfYear: '$birthDate' }
+							]
+						}
+					]
+				},
+				1,
+				0
+			]
+		}
+	]
 };

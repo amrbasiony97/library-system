@@ -1,3 +1,5 @@
+const { calculateAge } = require('../Utilities/utilities');
+
 exports.filter = request => {
 	const startDate = request.query.minHireDate
 		? new Date(`${request.query.minHireDate}T00:00:00Z`)
@@ -39,21 +41,21 @@ exports.sort = request => {
 
 	switch (request.query.sort) {
 		case 'firstName':
-			return { firstName: order, _id: 1 };
+			return { firstName: order };
 		case 'lastName':
-			return { lastName: order, _id: 1 };
+			return { lastName: order };
 		case 'fullName':
-			return { firstName: order, lastName: order, _id: 1 };
+			return { firstName: order, lastName: order };
 		case 'email':
-			return { email: order, _id: 1 };
+			return { email: order };
 		case 'age':
-			return { age: order, _id: 1 };
+			return { age: order };
 		case 'hireDate':
-			return { hireDate: order, _id: 1 };
+			return { hireDate: order };
 		case 'salary':
-			return { salary: order, _id: 1 };
+			return { salary: order };
 		default:
-			return { _id: order };
+			return { id: order };
 	}
 };
 
@@ -67,7 +69,16 @@ exports.allStaffProjection = {
 	image: 1,
 	hireDate: 1,
 	salary: 1,
-	age: {
-		$subtract: [{ $year: new Date() }, { $year: '$birthDate' }]
-	}
+	age: calculateAge
+};
+
+exports.oneStaffProjection = {
+	_id: 0,
+	id: '$_id',
+	firstName: 1,
+	lastName: 1,
+	email: 1,
+	gender: 1,
+	image: 1,
+	age: calculateAge
 };

@@ -64,12 +64,16 @@ const paginatedResults = (data, request, key) => {
 	return results;
 };
 
-exports.getDocumentById = (schema, key) => {
+exports.getDocumentById = (schema, key, projectObj) => {
 	return (request, response, next) => {
 		schema
-			.findOne({ _id: request.params.id })
+			.aggregate([
+				{ $match: { _id: Number(request.params.id) } },
+				{ $project: projectObj }
+			])
+			.exec()
 			.then(data => {
-				if (data) {
+				if (data.length > 0) {
 					response.status(200).json({ [key]: data });
 				} else {
 					let error = new Error(`${toCapitalCase(key)} not found`);
@@ -84,116 +88,105 @@ exports.getDocumentById = (schema, key) => {
 };
 
 exports.addDocument = (schema, key, mapFunction) => {
-	return (request, response, next) => {
+	return async (request, response, next) => {
 		const schemaObject = mapFunction(request);
-		schemaObject.image = request.file ? request.file.path : null;
-
-		new schema({ ...schemaObject })
-			.save()
-			.then(data => {
-				if (schemaObject.email) {
-					request.results = data;
-					return new UserRoleSchema({
-						email: schemaObject.email,
-						role: key
-					}).save();
-				} else {
-					response.status(201).json({ [key]: data });
-				}
-			})
-			.then(userRoleData => {
-				if (schemaObject.email) {
-					response.status(201).json({
-						[key]: request.results,
-						userRoleData
-					});
-				}
-			})
-			.catch(error => {
-				next(error);
-			});
+		if (request.file) {
+			schemaObject.image = request.file.path;
+		}
+		try {
+			let data = await new schema({ ...schemaObject }).save();
+			if (schemaObject.email) {
+				let userRoleData = await new UserRoleSchema({
+					email: schemaObject.email,
+					role: key
+				}).save();
+			}
+			let { _id, __v, ...result } = data.toObject();
+			result.id = _id.toString();
+			response.status(201).json({ [key]: result });
+		} catch (error) {
+			next(error);
+		}
 	};
 };
 
 exports.updateDocument = (schema, key, mapFunction) => {
-	return (request, response, next) => {
+	return async (request, response, next) => {
 		const schemaObject = mapFunction(request);
-		schemaObject.image = request.file ? request.file.path : null;
-
-		if (schemaObject.password) {
-			schemaObject.password = bcrypt.hashSync(
-				schemaObject.password,
-				saltRounds
-			);
+		if (request.file) {
+			schemaObject.image = request.file.path;
 		}
-		schema
-			.findOne({ _id: request.body.id })
-			.then(data => {
-				let error = new Error();
-				error.status = 403;
-				error.message = null;
+		try {
+			if (schemaObject.password) {
+				schemaObject.password = await bcrypt.hash(
+					schemaObject.password,
+					saltRounds
+				);
+			}
+			let data = await schema.findOne({ _id: request.body.id });
 
-				if (!data) {
-					error.status = 404;
-					error.message = `${toCapitalCase(key)} not found`;
-					throw error;
-				} else if (schemaObject.password && data.tmpPassword) {
-					error.message = `${toCapitalCase(
-						key
-					)} didn't activate his/her account yet`;
-				} else if (request.body.hireDate) {
-					error.message =
-						'hireDate cannot be changed once the user has been created';
-				}
+			let error = new Error();
+			error.status = 403;
+			error.message = null;
 
-				if (error.message) {
-					throw error;
-				}
-				// Save oldEmail to update email in users_roles collection if needed
-				request.body.oldEmail = schemaObject.email ? data.email : null;
+			if (!data) {
+				error.status = 404;
+				error.message = `${toCapitalCase(key)} not found`;
+			} else if (schemaObject.password && data.tmpPassword) {
+				error.message = `${toCapitalCase(
+					key
+				)} didn't activate his/her account yet`;
+			} else if (request.body.hireDate) {
+				error.message =
+					'hireDate cannot be changed once the user has been created';
+			}
 
-				if (data.image) {
-					if (schemaObject.image) {
-						fs.unlink(data.image, error => {});
-					} else {
-						schemaObject.image = data.image;
-					}
+			if (error.message) {
+				throw error;
+			}
+			// Save oldEmail to update email in users_roles collection if needed
+			if (schemaObject.email) {
+				request.body.oldEmail = data.email;
+			}
+
+			// Remove old image if user updated a new image
+			if (
+				schemaObject.image &&
+				(data.image !== DEFAULT_USER_IMAGE ||
+					data.image !== DEFAULT_BOOK_IMAGE)
+			) {
+				fs.unlink(data.image, error => {});
+			}
+			let result = await schema.updateOne(
+				{
+					_id: request.body.id
+				},
+				{
+					$set: { ...schemaObject }
 				}
-				return schema.updateOne(
+			);
+			if (result.matchedCount === 0) {
+				let error = new Error(`${toCapitalCase(key)} not found`);
+				error.status = 404;
+				throw error;
+			} else if (schemaObject.email) {
+				result = await UserRoleSchema.updateOne(
 					{
-						_id: request.body.id
+						email: request.body.oldEmail
 					},
 					{
-						$set: { ...schemaObject }
+						$set: {
+							email: schemaObject.email
+						}
 					}
 				);
-			})
-			.then(data => {
-				if (data.matchedCount === 0) {
-					let error = new Error(`${toCapitalCase(key)} not found`);
-					error.status = 404;
-					throw error;
-				} else if (schemaObject.email) {
-					return UserRoleSchema.updateOne(
-						{
-							email: request.body.oldEmail
-						},
-						{
-							$set: {
-								email: schemaObject.email
-							}
-						}
-					);
-				}
-			})
-			.then(data => {
-				response.status(200).json({
-					message: `${toCapitalCase(key)} updated successfully`
-				});
-			})
-			.catch(error => {
-				next(error);
+			}
+			response.status(200).json({
+				message: `${toCapitalCase(key)} updated successfully`
 			});
+		} catch (error) {
+			next(error);
+		}
 	};
 };
 
@@ -203,6 +196,7 @@ exports.updateDocumentById = (schema, key, mapFunction) => {
 		schemaObject.image = request.file ? request.file.path : null;
 
 		if (schemaObject.password) {
+			// TODO: remove hashSync and use async await to optimize performance
 			schemaObject.password = bcrypt.hashSync(
 				schemaObject.password,
 				saltRounds
@@ -276,6 +270,7 @@ exports.activateUser = (schema, key, mapFunction) => {
 		schemaObject.image = request.file ? request.file.path : null;
 
 		if (schemaObject.password) {
+			// TODO: remove hashSync and use async await to optimize performance
 			schemaObject.password = bcrypt.hashSync(
 				schemaObject.password,
 				saltRounds

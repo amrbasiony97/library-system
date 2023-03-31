@@ -4,6 +4,9 @@ const cors = require('cors');
 const fs = require('fs');
 const mongoose = require('mongoose');
 
+const { defineGlobalVariables } = require("./Core/Utilities/utilities");
+defineGlobalVariables();
+
 const adminRouter = require("./Routers/adminRouter");
 // const basicAdminRouter = require("./Routers/basicAdminRouter");
 // const bookRouter = require("./Routers/bookRouter");
@@ -11,6 +14,7 @@ const employeeRouter = require('./Routers/employeeRouter');
 // const loginRouter = require("./Routers/loginRouter");
 const memberRouter = require("./Routers/memberRouter");
 // const authenticateMW = require("./Core/Auth/authenticateMW");
+
 const server = express();
 const port = process.env.PORT || 8080;
 
